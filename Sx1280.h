@@ -1,7 +1,6 @@
 #ifndef __SX1280_H__
 #define __SX1280_H__
 
-#include <iostream>
 #include "radio.h"
 #include <math.h>
 #include <string.h>

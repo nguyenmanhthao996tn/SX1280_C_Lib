@@ -10,9 +10,25 @@ SX1280Hal::SX1280Hal(int mosi, int miso, int sclk, int nss,
                      int busy, int dio1, int dio2, int dio3, int rst,
                      RadioCallbacks_t *callbacks) : SX1280(callbacks)
 {
+    // DIO
     DioInit(dio1);
     DioInit(dio2);
     DioInit(dio3);
+
+    // SPI
+    pinMode(nss, OUTPUT);
+    SPI.begin();
+
+    // SS
+    pinMode(nss, OUTPUT);
+    digitalWrite(nss, HIGH);
+
+    // RESET
+    pinMode(rst, OUTPUT);
+    digitalWrite(rst, HIGH);
+
+    // BUSY
+    pinMode(busy, INPUT);
 }
 
 SX1280Hal::~SX1280Hal(void)

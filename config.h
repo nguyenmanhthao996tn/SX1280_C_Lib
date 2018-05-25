@@ -1,6 +1,9 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#include "Arduino.h"
+#include "SPI.h"
+
 /*!
  * \brief Represents all possible opcode understood by the radio
  */

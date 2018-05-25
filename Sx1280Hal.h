@@ -16,7 +16,7 @@ public:
      *
      * Represents the physical connectivity with the radio and set callback functions on radio interrupts
      */
-  SX1280Hal(int mosi, int miso, int sclk, int nss,
+  SX1280Hal(int nss,
             int busy, int dio1, int dio2, int dio3, int rst,
             RadioCallbacks_t *callbacks);
 
@@ -134,13 +134,13 @@ protected:
       BUSY,       //!< The pin connected to BUSY
       RadioNss,   //!< The pin connected to Radio chip select (active low)
       RadioReset, //!< The reset pin connected to the radio
-      RadioCtsn;   //!< The Clear To Send radio pin (active low)
+      RadioCtsn;  //!< The Clear To Send radio pin (active low)
 
-      /*!
+  /*!
      * \brief Initializes SPI object used to communicate with the radio
      */
-      virtual void
-      SpiInit(void);
+  virtual void
+  SpiInit(void);
 
   /*!
      * \brief Initializes UART object used to communicate with the radio

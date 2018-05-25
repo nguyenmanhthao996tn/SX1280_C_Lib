@@ -20,7 +20,7 @@
         }                        \
     }
 
-SX1280Hal::SX1280Hal(int mosi, int miso, int sclk, int nss,
+SX1280Hal::SX1280Hal(int nss,
                      int busy, int dio1, int dio2, int dio3, int rst,
                      RadioCallbacks_t *callbacks) : SX1280(callbacks)
 {

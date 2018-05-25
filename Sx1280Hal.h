@@ -128,10 +128,19 @@ public:
   virtual uint8_t GetDioStatus(void);
 
 protected:
-  /*!
+  int DIO1,       //!< The pin connected to DIO1
+      DIO2,       //!< The pin connected to DIO2
+      DIO3,       //!< The pin connected to DIO3
+      BUSY,       //!< The pin connected to BUSY
+      RadioNss,   //!< The pin connected to Radio chip select (active low)
+      RadioReset, //!< The reset pin connected to the radio
+      RadioCtsn;   //!< The Clear To Send radio pin (active low)
+
+      /*!
      * \brief Initializes SPI object used to communicate with the radio
      */
-  virtual void SpiInit(void);
+      virtual void
+      SpiInit(void);
 
   /*!
      * \brief Initializes UART object used to communicate with the radio

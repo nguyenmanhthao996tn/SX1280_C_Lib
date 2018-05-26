@@ -926,13 +926,6 @@ class SX1280 : public Radio
     virtual void IoIrqInit(DioIrqHandler irqHandler) = 0;
 
     /*!
-     * \brief DIOs interrupt callback
-     *
-     * \remark Called to handle all 3 DIOs pins
-     */
-    void OnDioIrq(void);
-
-    /*!
      * \brief Set the role of the radio during ranging operations
      *
      * \param [in]  role          Role of the radio
@@ -995,6 +988,13 @@ class SX1280 : public Radio
      * \brief Initializes the radio driver
      */
     void Init(void);
+
+        /*!
+     * \brief DIOs interrupt callback
+     *
+     * \remark Called to handle all 3 DIOs pins
+     */
+    void OnDioIrq(void);
 
     /*!
      * \brief Set the driver in polling mode.

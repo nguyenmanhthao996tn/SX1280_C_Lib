@@ -1,7 +1,7 @@
 #ifndef __SX1280_HAL_H__
 #define __SX1280_HAL_H__
 
-#include "sx1280.h"
+#include "Sx1280.h"
 
 #define NC -1 // NOT CONNECT
 

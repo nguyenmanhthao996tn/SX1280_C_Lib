@@ -2,6 +2,9 @@
 
 #define RF_FREQUENCY 2444000000ul
 #define MASTER
+#define BUFFER_SIZE 128
+
+uint8_t buffer[BUFFER_SIZE];
 
 /*!
  * \brief Function to be executed on Radio Tx Done event
@@ -90,10 +93,24 @@ void setup()
   PacketParams.Params.LoRa.Crc = LORA_CRC_ON;
   PacketParams.Params.LoRa.InvertIQ = LORA_IQ_NORMAL;
   Radio.SetPacketParams(&PacketParams);
+  Radio.ProcessIrqs();
   Serial.println("SX1280 Initialized");
 
 #ifdef MASTER
   // Init for Tx
+  Radio.SetTxParams(0x1F, RADIO_RAMP_20_US); // 13dBm
+  // Radio.WriteBuffer();
+
+  uint16_t IrqMask = 0x0000;
+  IrqMask = IRQ_RX_DONE | IRQ_CRC_ERROR | IRQ_RX_TX_TIMEOUT;
+  Radio.SetDioIrqParams(IrqMask, IrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
+
+  for (int i = BUFFER_SIZE - 1; i >= 0; i--)
+  {
+    buffer[i] = i;
+  }
+
+  Radio.SendPayload(buffer, BUFFER_SIZE, (TickTime_t) {RADIO_TICK_SIZE_1000_US, 10000}); // timeout = 10s
 #else
   // Init for Rx
 #endif

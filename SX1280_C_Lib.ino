@@ -1,7 +1,7 @@
 #include "Sx1280Hal.h"
 
 #define RF_FREQUENCY 2444000000ul
-#define MASTER
+// #define MASTER
 #define BUFFER_SIZE 128
 
 uint8_t buffer[BUFFER_SIZE];
@@ -97,6 +97,8 @@ void setup()
   Serial.println("SX1280 Initialized");
 
 #ifdef MASTER
+  Serial.println("MASTER");
+
   // Init for Tx
   Radio.SetTxParams(0x1F, RADIO_RAMP_20_US); // 13dBm
   // Radio.WriteBuffer();
@@ -110,9 +112,11 @@ void setup()
     buffer[i] = i;
   }
 
-  Radio.SendPayload(buffer, BUFFER_SIZE, (TickTime_t) {RADIO_TICK_SIZE_1000_US, 10000}); // timeout = 10s
+  Radio.SendPayload(buffer, BUFFER_SIZE, (TickTime_t){RADIO_TICK_SIZE_1000_US, 10000}); // timeout = 10s
 #else
+  Serial.println("SLAVE");
   // Init for Rx
+  Radio.SetRx((TickTime_t){RADIO_TICK_SIZE_1000_US, 0x0000});
 #endif
 }
 
@@ -129,43 +133,42 @@ void loop()
 // *****************************************************************************
 void OnTxDone(void)
 {
-  // DemoInternalState = APP_TX;
+  Serial.println("TxDone");
 }
 
 void OnRxDone(void)
 {
-  // DemoInternalState = APP_RX;
+  Serial.println("RxDone");
+
+  uint8_t bufferSize = BUFFER_SIZE;
+  Radio.GetPayload(buffer, &bufferSize, BUFFER_SIZE);
+
+  Serial.print("Data: ");
+  for (int i = 0; i < bufferSize; i++)
+  {
+    Serial.print(buffer[i]);
+    Serial.print(" ");
+  }
+  Serial.println();
 }
 
 void OnTxTimeout(void)
 {
-  // DemoInternalState = APP_TX_TIMEOUT;
+  Serial.println("RxDone");
 }
 
 void OnRxTimeout(void)
 {
-  // DemoInternalState = APP_RX_TIMEOUT;
+  Serial.println("RxDone");
 }
 
 void OnRxError(IrqErrorCode_t errorCode)
 {
-  // DemoInternalState = APP_RX_ERROR;
+  Serial.println("RxDone");
 }
 
 void OnRangingDone(IrqRangingCode_t val)
 {
-  // if( val == IRQ_RANGING_MASTER_VALID_CODE || val == IRQ_RANGING_SLAVE_VALID_CODE )
-  // {
-  //     DemoInternalState = APP_RANGING_DONE;
-  // }
-  // else if( val == IRQ_RANGING_MASTER_ERROR_CODE || val == IRQ_RANGING_SLAVE_ERROR_CODE )
-  // {
-  //     DemoInternalState = APP_RANGING_TIMEOUT;
-  // }
-  // else
-  // {
-  //     DemoInternalState = APP_RANGING_TIMEOUT;
-  // }
 }
 
 void OnCadDone(bool channelActivityDetected)
@@ -174,5 +177,6 @@ void OnCadDone(bool channelActivityDetected)
 
 void DioInterruptISR(void)
 {
+  Serial.println("DioInterruptISR");
   Radio.OnDioIrq();
 }

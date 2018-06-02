@@ -1,7 +1,7 @@
 #include "Sx1280Hal.h"
 
 #define RF_FREQUENCY 2444000000ul
-// #define MASTER
+#define MASTER
 #define BUFFER_SIZE 128
 
 uint8_t buffer[BUFFER_SIZE];
@@ -65,12 +65,9 @@ void setup()
   Serial.begin(9600);
   Serial.println("Arduino SX1280 PingPong demo");
 
-  // put your setup code here, to run once:
-  attachInterrupt(digitalPinToInterrupt(2), DioInterruptISR, RISING);
-  attachInterrupt(digitalPinToInterrupt(3), DioInterruptISR, RISING);
-
   // SX1280 Init
   Radio.Init();
+  Serial.println("RUN");
   Radio.SetRegulatorMode(USE_LDO);
   Radio.SetStandby(STDBY_RC);
   Radio.SetPacketType(PACKET_TYPE_LORA);
@@ -95,6 +92,11 @@ void setup()
   Radio.SetPacketParams(&PacketParams);
   Radio.ProcessIrqs();
   Serial.println("SX1280 Initialized");
+
+  
+  // put your setup code here, to run once:
+  attachInterrupt(digitalPinToInterrupt(2), DioInterruptISR, RISING);
+  attachInterrupt(digitalPinToInterrupt(3), DioInterruptISR, RISING);
 
 #ifdef MASTER
   Serial.println("MASTER");

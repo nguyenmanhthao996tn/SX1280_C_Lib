@@ -51,6 +51,8 @@ SX1280Hal::SX1280Hal(int nss,
     // BUSY
     this->BUSY = busy;
     pinMode(busy, INPUT);
+
+    SpiInit();
 }
 
 SX1280Hal::~SX1280Hal(void)
@@ -61,7 +63,8 @@ void SX1280Hal::SpiInit(void)
 {
     digitalWrite(RadioNss, HIGH);
     SPI.beginTransaction(SPISettings(8000000, MSBFIRST, SPI_MODE0));
-    delay(100);
+    // SPI.begin();
+    // delay(100);
 }
 
 void SX1280Hal::IoIrqInit(DioIrqHandler irqHandler)

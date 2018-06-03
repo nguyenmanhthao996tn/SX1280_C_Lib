@@ -2,6 +2,8 @@
 #define __HEADER_H__
 
 #include <stdint.h>
+#include <stdbool.h>
+#include "Config.h"
 
 /*!
    \brief Provides the frequency of the chip running on the radio and the frequency step

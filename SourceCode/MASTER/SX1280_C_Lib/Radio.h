@@ -4,7 +4,7 @@
 #include "Radio_Methods.h"
 
 typedef struct {
-  void (*Init)(void);
+  void (*Init)(RadioCallbacks_t* callbacks);
   void (*SetPollingMode)(void);
   void (*SetInterruptMode)(void);
   void (*SetRegistersDefault)(void);
@@ -53,7 +53,7 @@ typedef struct {
   void (*SetLongPreamble)(bool enable);
   void (*SetPayload)(uint8_t *payload, uint8_t size, uint8_t offsetx00);
   uint8_t (*GetPayload)(uint8_t *payload, uint8_t *size, uint8_t maxSize);
-  void (*SendPayload)(uint8_t *payload, uint8_t size, TickTime_t timeout, uint8_t offsetx00);
+  void (*SendPayload)(uint8_t *payload, uint8_t size, TickTime_t timeout, uint8_t offset);
   uint8_t (*SetSyncWord)(uint8_t syncWordIdx, uint8_t *syncWord);
   void (*SetSyncWordErrorTolerance)(uint8_t errorBits);
   uint8_t (*SetCrcSeed)(uint8_t *seed);

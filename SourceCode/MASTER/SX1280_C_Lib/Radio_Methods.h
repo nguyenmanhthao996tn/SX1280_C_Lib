@@ -3,7 +3,7 @@
 
 #include "Header.h"
 
-void __Init(void);
+void __Init(RadioCallbacks_t* callbacks);
 void __SetPollingMode(void);
 void __SetInterruptMode(void);
 void __SetRegistersDefault(void);
@@ -31,7 +31,7 @@ void __SetCad(void);
 void __SetTxContinuousWave(void);
 void __SetTxContinuousPreamble(void);
 void __SetPacketType(RadioPacketTypes_t packetType);
-RadioPacketTypes_t __GetPacketType(bool returnLocalCopy = false);
+RadioPacketTypes_t __GetPacketType(bool returnLocalCopy);
 void __SetRfFrequency(uint32_t rfFrequency);
 void __SetTxParams(int8_t power, RadioRampTimes_t rampTime);
 void __SetCadParams(RadioLoRaCadSymbols_t cadSymbolNum);
@@ -52,7 +52,7 @@ void __SetAutoFs(bool enableAutoFs);
 void __SetLongPreamble(bool enable);
 void __SetPayload(uint8_t *payload, uint8_t size, uint8_t offsetx00);
 uint8_t __GetPayload(uint8_t *payload, uint8_t *size, uint8_t maxSize);
-void __SendPayload(uint8_t *payload, uint8_t size, TickTime_t timeout, uint8_t offsetx00);
+void __SendPayload(uint8_t *payload, uint8_t size, TickTime_t timeout, uint8_t offset);
 uint8_t __SetSyncWord(uint8_t syncWordIdx, uint8_t *syncWord);
 void __SetSyncWordErrorTolerance(uint8_t errorBits);
 uint8_t __SetCrcSeed(uint8_t *seed);

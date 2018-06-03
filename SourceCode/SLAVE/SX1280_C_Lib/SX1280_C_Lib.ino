@@ -1,7 +1,7 @@
 #include "Sx1280Hal.h"
 
 #define RF_FREQUENCY 2444000000ul
-#define MASTER
+// #define MASTER
 #define BUFFER_SIZE 128
 
 uint8_t buffer[BUFFER_SIZE];

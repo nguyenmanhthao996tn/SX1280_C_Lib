@@ -158,21 +158,74 @@
 #define BLE_ADVERTIZER_ACCESS_ADDRESS               0x8E89BED6
 
 /*!
- * \brief The radio callbacks structure
- * Holds function pointers to be called on radio interrupts
- */
+   \brief Structure describing the radio status
+*/
+typedef union
+{
+  /*!
+     \brief Structure of the radio status
+  */
+  struct
+  {
+    uint8_t CpuBusy   : 1;  //!< Flag for CPU radio busy
+    uint8_t DmaBusy   : 1;  //!< Flag for DMA busy
+    uint8_t CmdStatus : 3;  //!< Command status
+    uint8_t ChipMode  : 3;  //!< Chip mode
+  } Fields;
+
+  /*!
+     \brief Serialized radio status
+  */
+  uint8_t Value;
+} RadioStatus_t;
+
+/*!
+   \brief Structure describing the ranging codes for callback functions
+*/
+typedef enum
+{
+  IRQ_RANGING_SLAVE_ERROR_CODE            = 0x00,
+  IRQ_RANGING_SLAVE_VALID_CODE,
+  IRQ_RANGING_MASTER_ERROR_CODE,
+  IRQ_RANGING_MASTER_VALID_CODE,
+} IrqRangingCode_t;
+
+/*!
+   \brief Structure describing the error codes for callback functions
+*/
+typedef enum
+{
+  IRQ_HEADER_ERROR_CODE                   = 0x00,
+  IRQ_SYNCWORD_ERROR_CODE,
+  IRQ_CRC_ERROR_CODE,
+  IRQ_RANGING_ON_LORA_ERROR_CODE,
+} IrqErrorCode_t;
+
+/*!
+   \brief Structure describing the validity codes for callback function rxValid
+*/
+typedef enum
+{
+  IRQ_HEADER_VALID_CODE                   = 0x00,
+  IRQ_SYNCWORD_VALID_CODE,
+} IrqValidCode_t;
+
+/*!
+   \brief The radio callbacks structure
+   Holds function pointers to be called on radio interrupts
+*/
 typedef struct
 {
-    void ( *txDone )( void );                       //!< Pointer to a function run on successful transmission
-    void ( *rxDone )( void );                       //!< Pointer to a function run on successful reception
-    void ( *rxSyncWordDone )( void );               //!< Pointer to a function run on successful SyncWord reception
-    void ( *rxHeaderDone )( void );                 //!< Pointer to a function run on successful Header reception
-    void ( *txTimeout )( void );                    //!< Pointer to a function run on transmission timeout
-    void ( *rxTimeout )( void );                    //!< Pointer to a function run on reception timeout
-    void ( *rxError )( IrqErrorCode_t errCode );    //!< Pointer to a function run on reception error
-    void ( *rangingDone )( IrqRangingCode_t val );  //!< Pointer to a function run on ranging terminated
-    void ( *cadDone )( bool cadFlag );              //!< Pointer to a function run on channel activity detected
-}RadioCallbacks_t;
+  void ( *txDone )( void );                       //!< Pointer to a function run on successful transmission
+  void ( *rxDone )( void );                       //!< Pointer to a function run on successful reception
+  void ( *rxSyncWordDone )( void );               //!< Pointer to a function run on successful SyncWord reception
+  void ( *rxHeaderDone )( void );                 //!< Pointer to a function run on successful Header reception
+  void ( *txTimeout )( void );                    //!< Pointer to a function run on transmission timeout
+  void ( *rxTimeout )( void );                    //!< Pointer to a function run on reception timeout
+  void ( *rxError )( IrqErrorCode_t errCode );    //!< Pointer to a function run on reception error
+  void ( *rangingDone )( IrqRangingCode_t val );  //!< Pointer to a function run on ranging terminated
+  void ( *cadDone )( bool cadFlag );              //!< Pointer to a function run on channel activity detected
+} RadioCallbacks_t;
 
 /*!
    \brief Represents the states of the radio

@@ -982,7 +982,7 @@ double __GetRangingResult(RadioRangingResultTypes_t resultType)
       __SetStandby( STDBY_XOSC );
       __WriteRegister_1( 0x97F, __ReadRegister_1( 0x97F ) | ( 1 << 1 ) ); // enable LORA modem clock
       __WriteRegister_1( REG_LR_RANGINGRESULTCONFIG, ( __ReadRegister_1( REG_LR_RANGINGRESULTCONFIG ) & MASK_RANGINGMUXSEL ) | ( ( ( ( uint8_t )resultType ) & 0x03 ) << 4 ) );
-      valLsb = ( ( __ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR ) << 16 ) | ( __ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR + 1 ) << 8 ) | ( __ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR + 2 ) ) );
+      valLsb = ( ( (uint32_t)__ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR ) << 16 ) | ( (uint32_t)__ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR + 1 ) << 8 ) | ( (uint32_t)__ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR + 2 ) ) );
       __SetStandby( STDBY_RC );
 
       // Convertion from LSB to distance. For explanation on the formula, refer to Datasheet of SX1280

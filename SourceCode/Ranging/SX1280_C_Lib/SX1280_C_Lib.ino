@@ -1,26 +1,53 @@
 #include "Radio.h"
+#include "FreqLUT.h"
 
 #define IS_MASTER 0
 
-#define RF_FREQUENCY                                2400000000// Hz
 #define TX_OUTPUT_POWER                             13 // dBm
 #define RX_TIMEOUT_TICK_SIZE                        RADIO_TICK_SIZE_1000_US
 #define RX_TIMEOUT_VALUE                            1000 // ms
 #define TX_TIMEOUT_VALUE                            10000 // ms
 #define BUFFER_SIZE                                 255
 
-const uint8_t PingMsg[] = "PING";
-const uint8_t PongMsg[] = "PONG";
-#define PINGPONGSIZE                                4
+const uint32_t rangingAddress[] = {
+  0x10000000,
+  0x32100000,
+  0x20012301,
+  0x20000abc,
+  0x32101230
+};
+#define RANGING_ADDRESS_SIZE 5
+
+/*!
+   \brief Ranging raw factors
+                                    SF5     SF6     SF7     SF8     SF9     SF10
+*/
+const uint16_t RNG_CALIB_0400[] = { 10299,  10271,  10244,  10242,  10230,  10246  };
+const uint16_t RNG_CALIB_0800[] = { 11486,  11474,  11453,  11426,  11417,  11401  };
+const uint16_t RNG_CALIB_1600[] = { 13308,  13493,  13528,  13515,  13430,  13376  };
+const double   RNG_FGRAD_0400[] = { -0.148, -0.214, -0.419, -0.853, -1.686, -3.423 };
+const double   RNG_FGRAD_0800[] = { -0.041, -0.811, -0.218, -0.429, -0.853, -1.737 };
+const double   RNG_FGRAD_1600[] = { 0.103,  -0.041, -0.101, -0.211, -0.424, -0.87  };
+
+const char* IrqRangingCodeName[] = {
+  "IRQ_RANGING_SLAVE_ERROR_CODE",
+  "IRQ_RANGING_SLAVE_VALID_CODE",
+  "IRQ_RANGING_MASTER_ERROR_CODE",
+  "IRQ_RANGING_MASTER_VALID_CODE"
+};
 
 typedef enum
 {
-  APP_LOWPOWER,
+  APP_IDLE,
   APP_RX,
   APP_RX_TIMEOUT,
   APP_RX_ERROR,
   APP_TX,
   APP_TX_TIMEOUT,
+  APP_RX_SYNC_WORD,
+  APP_RX_HEADER,
+  APP_RANGING,
+  APP_CAD
 } AppStates_t;
 
 void txDoneIRQ( void );
@@ -47,34 +74,41 @@ RadioCallbacks_t Callbacks = {
 
 extern const Radio_t Radio;
 
-uint16_t RxIrqMask = IRQ_RX_DONE | IRQ_RX_TX_TIMEOUT;
-uint16_t TxIrqMask = IRQ_TX_DONE | IRQ_RX_TX_TIMEOUT;
+uint16_t masterIrqMask = IRQ_RANGING_MASTER_RESULT_VALID | IRQ_RANGING_MASTER_TIMEOUT;
+uint16_t slaveIrqMask = IRQ_RANGING_SLAVE_RESPONSE_DONE | IRQ_RANGING_SLAVE_REQUEST_DISCARDED;
 
 PacketParams_t packetParams;
 PacketStatus_t packetStatus;
 ModulationParams_t modulationParams;
 
-AppStates_t AppState = APP_LOWPOWER;
+AppStates_t AppState = APP_IDLE;
+IrqRangingCode_t MasterIrqRangingCode = IRQ_RANGING_MASTER_ERROR_CODE;
 uint8_t Buffer[BUFFER_SIZE];
 uint8_t BufferSize = BUFFER_SIZE;
 
 void setup() {
   Serial.begin(9600);
-  Serial.println("SX1280");
-
+  if (IS_MASTER)
+  {
+    Serial.println("SX1280 MASTER");
+  }
+  else
+  {
+    Serial.println("SX1280 SLAVE");
+  }
   Radio.Init(&Callbacks);
   Radio.SetRegulatorMode( USE_LDO ); // Can also be set in LDO mode but consume more power
-  Serial.println( "\n\n\r     SX1280 Ping Pong Demo Application. \n\n\r");
+  Serial.println( "\n\n\r     SX1280 Rangin Demo Application. \n\n\r");
 
   modulationParams.PacketType = PACKET_TYPE_RANGING;
   modulationParams.Params.LoRa.SpreadingFactor = LORA_SF5;
-  modulationParams.Params.LoRa.Bandwidth = LORA_BW_400;
+  modulationParams.Params.LoRa.Bandwidth = LORA_BW_0400;
   modulationParams.Params.LoRa.CodingRate = LORA_CR_LI_4_5;
 
   packetParams.PacketType = PACKET_TYPE_RANGING;
   packetParams.Params.LoRa.PreambleLength = 12;
   packetParams.Params.LoRa.HeaderType = LORA_PACKET_VARIABLE_LENGTH;
-  packetParams.Params.LoRa.PayloadLength = 250;
+  packetParams.Params.LoRa.PayloadLength = 150;
   packetParams.Params.LoRa.Crc = LORA_CRC_ON;
   packetParams.Params.LoRa.InvertIQ = LORA_IQ_NORMAL;
 
@@ -82,90 +116,96 @@ void setup() {
   Radio.SetPacketType( modulationParams.PacketType );
   Radio.SetModulationParams( &modulationParams );
   Radio.SetPacketParams( &packetParams );
-  Radio.SetRfFrequency( RF_FREQUENCY );
+  Radio.SetRfFrequency( Channels[0] );
+  Radio.SetTxParams( TX_OUTPUT_POWER, RADIO_RAMP_20_US );
   Radio.SetBufferBaseAddresses( 0x00, 0x00 );
-  Radio.SetTxParams( TX_OUTPUT_POWER, RADIO_RAMP_02_US );
+  Radio.SetRangingCalibration( RNG_CALIB_0400[0] ); // Bandwith 400, SF5
+  Radio.SetInterruptMode();
 
-  uint8_t syncWord[] = {0xDD, 0xA0, 0x96, 0x69, 0xDD};
-  Radio.SetSyncWord( 1, syncWord);
-
-  Radio.SetDioIrqParams( RxIrqMask, RxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
-
-  if (!IS_MASTER)
+  if (IS_MASTER)
   {
-    Radio.SetRx( ( TickTime_t ) {
-      RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
-    }  );
+    Radio.SetRangingRequestAddress(rangingAddress[2]);
+    Radio.SetDioIrqParams( masterIrqMask, masterIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
+    Radio.SetTx((TickTime_t) {
+      RADIO_TICK_SIZE_1000_US, 0xFFFF
+    });
   }
-  AppState = APP_LOWPOWER;
+  else // SLAVE
+  {
+    Radio.SetRangingIdLength(RANGING_IDCHECK_LENGTH_32_BITS);
+    Radio.SetDeviceRangingAddress(rangingAddress[2]);
+    Radio.SetDioIrqParams( slaveIrqMask, slaveIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
+    Radio.SetRx((TickTime_t) {
+      RADIO_TICK_SIZE_1000_US, 0xFFFF
+    });
+  }
+
+  AppState = APP_IDLE;
 }
 
 void loop() {
-  if (IS_MASTER)
+  switch (AppState)
   {
-    memcpy( Buffer, PingMsg, PINGPONGSIZE );
-    Radio.SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
-    Radio.SendPayload( Buffer, PINGPONGSIZE, ( TickTime_t ) {
-      RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE
-    }, 0 );
+    case APP_IDLE:
+      break;
+    case APP_RX:
+      AppState = APP_IDLE;
+      Serial.println("APP_RX");
+      break;
+    case APP_RX_TIMEOUT:
+      AppState = APP_IDLE;
+      Serial.println("APP_RX_TIMEOUT");
+      break;
+    case APP_RX_ERROR:
+      AppState = APP_IDLE;
+      Serial.println("APP_RX_ERROR");
+      break;
+    case APP_TX:
+      AppState = APP_IDLE;
+      Serial.println("APP_TX");
+      break;
+    case APP_TX_TIMEOUT:
+      AppState = APP_IDLE;
+      Serial.println("APP_TX_TIMEOUT");
+      break;
+    case APP_RX_SYNC_WORD:
+      AppState = APP_IDLE;
+      Serial.println("APP_RX_SYNC_WORD");
+      break;
+    case APP_RX_HEADER:
+      AppState = APP_IDLE;
+      Serial.println("APP_RX_HEADER");
+      break;
+    case APP_RANGING:
+      AppState = APP_IDLE;
+      Serial.println("APP_RANGING");
+      if (IS_MASTER && (MasterIrqRangingCode == IRQ_RANGING_MASTER_VALID_CODE))
+      {
+        uint8_t reg[3];
+        Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR, &reg[0], 1);
+        Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 1, &reg[1], 1);
+        Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 2, &reg[2], 1);
+        Serial.println(reg[0]);
+        Serial.println(reg[1]);
+        Serial.println(reg[2]);
 
-    delay(2000);
-  }
-  else
-  {
-    switch (AppState)
-    {
-      case APP_LOWPOWER:
-        break;
-      case APP_RX:
-        AppState = APP_LOWPOWER;
-
-        Radio.GetPayload( Buffer, &BufferSize, BUFFER_SIZE );
-        if (BufferSize > 0)
-        {
-          Serial.print("RX ");
-          Serial.print(BufferSize);
-          Serial.println(" bytes:");
-
-          for (int i = 0; i < BufferSize; i++)
-          {
-            Serial.println(Buffer[i]);
-          }
-        }
-
-        Radio.SetRx( ( TickTime_t ) {
-          RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
-        }  );
-        break;
-      case APP_RX_TIMEOUT:
-        AppState = APP_LOWPOWER;
-
-        Serial.println("Timeout");
-        Radio.SetRx( ( TickTime_t ) {
-          RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
-        }  );
-
-        break;
-      case APP_RX_ERROR:
-        AppState = APP_LOWPOWER;
-        break;
-      case APP_TX:
-        AppState = APP_LOWPOWER;
-        break;
-      case APP_TX_TIMEOUT:
-        AppState = APP_LOWPOWER;
-        break;
-      default:
-        AppState = APP_LOWPOWER;
-        break;
-    }
+        double rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
+        Serial.println(rangingResult);
+      }
+      break;
+    case APP_CAD:
+      AppState = APP_IDLE;
+      Serial.println("APP_CAD");
+      break;
+    default:
+      AppState = APP_IDLE;
+      break;
   }
 }
 
 void txDoneIRQ( void )
 {
   AppState = APP_TX;
-  Serial.println("Sent");
 }
 
 void rxDoneIRQ( void )
@@ -175,10 +215,12 @@ void rxDoneIRQ( void )
 
 void rxSyncWordDoneIRQ( void )
 {
+  AppState = APP_RX_SYNC_WORD;
 }
 
 void rxHeaderDoneIRQ( void )
 {
+  AppState = APP_RX_HEADER;
 }
 
 void txTimeoutIRQ( void )
@@ -198,9 +240,11 @@ void rxErrorIRQ( IrqErrorCode_t errCode )
 
 void rangingDoneIRQ( IrqRangingCode_t val )
 {
+  AppState = APP_RANGING;
+  MasterIrqRangingCode = val;
 }
 
 void cadDoneIRQ( bool cadFlag )
 {
-  Serial.println("cadDoneIRQ");
+  AppState = APP_CAD;
 }

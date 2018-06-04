@@ -63,15 +63,15 @@ void setup() {
   Serial.println("SX1280");
 
   Radio.Init(&Callbacks);
-  Radio.SetRegulatorMode( USE_DCDC ); // Can also be set in LDO mode but consume more power
+  Radio.SetRegulatorMode( USE_LDO ); // Can also be set in LDO mode but consume more power
   Serial.println( "\n\n\r     SX1280 Ping Pong Demo Application. \n\n\r");
 
-  modulationParams.PacketType = PACKET_TYPE_LORA;
-  modulationParams.Params.LoRa.SpreadingFactor = LORA_SF12;
-  modulationParams.Params.LoRa.Bandwidth = LORA_BW_1600;
-  modulationParams.Params.LoRa.CodingRate = LORA_CR_LI_4_7;
+  modulationParams.PacketType = PACKET_TYPE_RANGING;
+  modulationParams.Params.LoRa.SpreadingFactor = LORA_SF5;
+  modulationParams.Params.LoRa.Bandwidth = LORA_BW_400;
+  modulationParams.Params.LoRa.CodingRate = LORA_CR_LI_4_5;
 
-  packetParams.PacketType = PACKET_TYPE_LORA;
+  packetParams.PacketType = PACKET_TYPE_RANGING;
   packetParams.Params.LoRa.PreambleLength = 12;
   packetParams.Params.LoRa.HeaderType = LORA_PACKET_VARIABLE_LENGTH;
   packetParams.Params.LoRa.PayloadLength = 250;

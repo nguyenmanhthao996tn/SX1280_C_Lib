@@ -7,7 +7,7 @@
 #define RX_TIMEOUT_TICK_SIZE                        RADIO_TICK_SIZE_1000_US
 #define RX_TIMEOUT_VALUE                            1000 // ms
 #define TX_TIMEOUT_VALUE                            10000 // ms
-#define BUFFER_SIZE                                 249
+#define BUFFER_SIZE                                 255
 
 const uint8_t PingMsg[] = "PING";
 const uint8_t PongMsg[] = "PONG";
@@ -91,93 +91,113 @@ void setup() {
 
   Radio.SetDioIrqParams( RxIrqMask, RxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
 
-  Radio.SetRx( ( TickTime_t ) {
-    RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
-  }  );
-
+  if (!IS_MASTER)
+  {
+    Radio.SetRx( ( TickTime_t ) {
+      RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
+    }  );
+  }
   AppState = APP_LOWPOWER;
 }
 
 void loop() {
-  switch (AppState)
+  if (IS_MASTER)
   {
-    case APP_LOWPOWER:
-      break;
-    case APP_RX:
-      break;
-    case APP_RX_TIMEOUT:
-      AppState = APP_LOWPOWER;
-      if (IS_MASTER)
-      {
-        memcpy( Buffer, PingMsg, PINGPONGSIZE );
-        Radio.SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
-        Radio.SendPayload( Buffer, BufferSize, ( TickTime_t ) {
-          RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE
-        }, 0 );
-      }
-      else // SLAVE
-      {
+    memcpy( Buffer, PingMsg, PINGPONGSIZE );
+    Radio.SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
+    Radio.SendPayload( Buffer, PINGPONGSIZE, ( TickTime_t ) {
+      RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE
+    }, 0 );
+
+    delay(2000);
+  }
+  else
+  {
+    switch (AppState)
+    {
+      case APP_LOWPOWER:
+        break;
+      case APP_RX:
+        AppState = APP_LOWPOWER;
+
+        Radio.GetPayload( Buffer, &BufferSize, BUFFER_SIZE );
+        if (BufferSize > 0)
+        {
+          Serial.print("RX ");
+          Serial.print(BufferSize);
+          Serial.println(" bytes:");
+
+          for (int i = 0; i < BufferSize; i++)
+          {
+            Serial.println(Buffer[i]);
+          }
+        }
+
+        Radio.SetRx( ( TickTime_t ) {
+          RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
+        }  );
+        break;
+      case APP_RX_TIMEOUT:
+        AppState = APP_LOWPOWER;
+
         Serial.println("Timeout");
         Radio.SetRx( ( TickTime_t ) {
           RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
         }  );
-      }
-      break;
-    case APP_RX_ERROR:
-      break;
-    case APP_TX:
-      break;
-    case APP_TX_TIMEOUT:
-      break;
-    default:
-      AppState = APP_LOWPOWER;
-      break;
+
+        break;
+      case APP_RX_ERROR:
+        AppState = APP_LOWPOWER;
+        break;
+      case APP_TX:
+        AppState = APP_LOWPOWER;
+        break;
+      case APP_TX_TIMEOUT:
+        AppState = APP_LOWPOWER;
+        break;
+      default:
+        AppState = APP_LOWPOWER;
+        break;
+    }
   }
 }
 
 void txDoneIRQ( void )
 {
-  Serial.println("txDoneIRQ");
   AppState = APP_TX;
+  Serial.println("Sent");
 }
 
 void rxDoneIRQ( void )
 {
-  Serial.println("rxDoneIRQ");
   AppState = APP_RX;
 }
 
 void rxSyncWordDoneIRQ( void )
 {
-  Serial.println("rxSyncWordDoneIRQ");
 }
 
 void rxHeaderDoneIRQ( void )
 {
-  Serial.println("rxHeaderDoneIRQ");
 }
 
 void txTimeoutIRQ( void )
 {
-  Serial.println("txTimeoutIRQ");
   AppState = APP_TX_TIMEOUT;
 }
 
 void rxTimeoutIRQ( void )
 {
-  Serial.println("rxTimeoutIRQ");
   AppState = APP_RX_TIMEOUT;
 }
 
 void rxErrorIRQ( IrqErrorCode_t errCode )
 {
-  Serial.println("rxErrorIRQ");
   AppState = APP_RX_ERROR;
 }
 
 void rangingDoneIRQ( IrqRangingCode_t val )
 {
-  Serial.println("rangingDoneIRQ");
 }
 
 void cadDoneIRQ( bool cadFlag )

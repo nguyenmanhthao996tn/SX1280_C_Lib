@@ -98,17 +98,17 @@ void setup() {
   }
   Radio.Init(&Callbacks);
   Radio.SetRegulatorMode( USE_LDO ); // Can also be set in LDO mode but consume more power
-  Serial.println( "\n\n\r     SX1280 Rangin Demo Application. \n\n\r");
+  Serial.println( "\n\n\r     SX1280 Ranging Demo Application. \n\n\r");
 
   modulationParams.PacketType = PACKET_TYPE_RANGING;
-  modulationParams.Params.LoRa.SpreadingFactor = LORA_SF5;
-  modulationParams.Params.LoRa.Bandwidth = LORA_BW_0400;
+  modulationParams.Params.LoRa.SpreadingFactor = LORA_SF10;
+  modulationParams.Params.LoRa.Bandwidth = LORA_BW_1600;
   modulationParams.Params.LoRa.CodingRate = LORA_CR_LI_4_5;
 
   packetParams.PacketType = PACKET_TYPE_RANGING;
   packetParams.Params.LoRa.PreambleLength = 12;
   packetParams.Params.LoRa.HeaderType = LORA_PACKET_VARIABLE_LENGTH;
-  packetParams.Params.LoRa.PayloadLength = 150;
+  packetParams.Params.LoRa.PayloadLength = 7;
   packetParams.Params.LoRa.Crc = LORA_CRC_ON;
   packetParams.Params.LoRa.InvertIQ = LORA_IQ_NORMAL;
 
@@ -119,7 +119,7 @@ void setup() {
   Radio.SetRfFrequency( Channels[0] );
   Radio.SetTxParams( TX_OUTPUT_POWER, RADIO_RAMP_20_US );
   Radio.SetBufferBaseAddresses( 0x00, 0x00 );
-  Radio.SetRangingCalibration( RNG_CALIB_0400[0] ); // Bandwith 400, SF5
+  Radio.SetRangingCalibration( RNG_CALIB_1600[5] ); // Bandwith 1600, SF10
   Radio.SetInterruptMode();
 
   if (IS_MASTER)

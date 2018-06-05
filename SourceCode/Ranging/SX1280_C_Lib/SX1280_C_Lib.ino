@@ -150,52 +150,67 @@ void loop() {
       break;
     case APP_RX:
       AppState = APP_IDLE;
-      Serial.println("APP_RX");
+      // Serial.println("APP_RX");
       break;
     case APP_RX_TIMEOUT:
       AppState = APP_IDLE;
-      Serial.println("APP_RX_TIMEOUT");
+      // Serial.println("APP_RX_TIMEOUT");
       break;
     case APP_RX_ERROR:
       AppState = APP_IDLE;
-      Serial.println("APP_RX_ERROR");
+      // Serial.println("APP_RX_ERROR");
       break;
     case APP_TX:
       AppState = APP_IDLE;
-      Serial.println("APP_TX");
+      // Serial.println("APP_TX");
       break;
     case APP_TX_TIMEOUT:
       AppState = APP_IDLE;
-      Serial.println("APP_TX_TIMEOUT");
+      // Serial.println("APP_TX_TIMEOUT");
       break;
     case APP_RX_SYNC_WORD:
       AppState = APP_IDLE;
-      Serial.println("APP_RX_SYNC_WORD");
+      // Serial.println("APP_RX_SYNC_WORD");
       break;
     case APP_RX_HEADER:
       AppState = APP_IDLE;
-      Serial.println("APP_RX_HEADER");
+      // Serial.println("APP_RX_HEADER");
       break;
     case APP_RANGING:
       AppState = APP_IDLE;
-      Serial.println("APP_RANGING");
-      if (IS_MASTER && (MasterIrqRangingCode == IRQ_RANGING_MASTER_VALID_CODE))
+      // Serial.println("APP_RANGING");
+      if (IS_MASTER)
       {
-        uint8_t reg[3];
-        Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR, &reg[0], 1);
-        Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 1, &reg[1], 1);
-        Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 2, &reg[2], 1);
-        Serial.println(reg[0]);
-        Serial.println(reg[1]);
-        Serial.println(reg[2]);
+        switch (MasterIrqRangingCode)
+        {
+          case IRQ_RANGING_MASTER_VALID_CODE:
+            uint8_t reg[3];
+            
+            Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR, &reg[0], 1);
+            Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 1, &reg[1], 1);
+            Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 2, &reg[2], 1);
+            Serial.println(reg[0]);
+            Serial.println(reg[1]);
+            Serial.println(reg[2]);
 
-        double rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
-        Serial.println(rangingResult);
+            double rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
+            Serial.println(rangingResult);
+            break;
+          case IRQ_RANGING_MASTER_ERROR_CODE:
+            Serial.println("Raging Error");
+            break;
+          default:
+            break;
+        }
+
+        Radio.SetTx((TickTime_t) {
+          RADIO_TICK_SIZE_1000_US, 0xFFFF
+        });
       }
       break;
     case APP_CAD:
       AppState = APP_IDLE;
-      Serial.println("APP_CAD");
+      // Serial.println("APP_CAD");
       break;
     default:
       AppState = APP_IDLE;

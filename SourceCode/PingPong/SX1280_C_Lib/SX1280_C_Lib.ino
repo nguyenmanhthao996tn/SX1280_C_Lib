@@ -57,6 +57,7 @@ ModulationParams_t modulationParams;
 AppStates_t AppState = APP_LOWPOWER;
 uint8_t Buffer[BUFFER_SIZE];
 uint8_t BufferSize = BUFFER_SIZE;
+uint8_t counter = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -74,7 +75,7 @@ void setup() {
   packetParams.PacketType = PACKET_TYPE_LORA;
   packetParams.Params.LoRa.PreambleLength = 12;
   packetParams.Params.LoRa.HeaderType = LORA_PACKET_VARIABLE_LENGTH;
-  packetParams.Params.LoRa.PayloadLength = 250;
+  packetParams.Params.LoRa.PayloadLength = 10;
   packetParams.Params.LoRa.Crc = LORA_CRC_ON;
   packetParams.Params.LoRa.InvertIQ = LORA_IQ_NORMAL;
 
@@ -84,15 +85,19 @@ void setup() {
   Radio.SetPacketParams( &packetParams );
   Radio.SetRfFrequency( RF_FREQUENCY );
   Radio.SetBufferBaseAddresses( 0x00, 0x00 );
-  Radio.SetTxParams( TX_OUTPUT_POWER, RADIO_RAMP_02_US );
+  Radio.SetTxParams( TX_OUTPUT_POWER, RADIO_RAMP_20_US );
 
   uint8_t syncWord[] = {0xDD, 0xA0, 0x96, 0x69, 0xDD};
   Radio.SetSyncWord( 1, syncWord);
 
-  Radio.SetDioIrqParams( RxIrqMask, RxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
 
-  if (!IS_MASTER)
+  if (IS_MASTER)
   {
+    Radio.SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
+  }
+  else
+  {
+    Radio.SetDioIrqParams( RxIrqMask, RxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
     Radio.SetRx( ( TickTime_t ) {
       RX_TIMEOUT_TICK_SIZE, RX_TIMEOUT_VALUE
     }  );
@@ -103,13 +108,13 @@ void setup() {
 void loop() {
   if (IS_MASTER)
   {
-    memcpy( Buffer, PingMsg, PINGPONGSIZE );
-    Radio.SetDioIrqParams( TxIrqMask, TxIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE );
-    Radio.SendPayload( Buffer, PINGPONGSIZE, ( TickTime_t ) {
+    Radio.SendPayload( &counter, 1, ( TickTime_t ) {
       RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE
     }, 0 );
-
-    delay(2000);
+    
+    if (++counter > 100) counter = 0;
+    
+    delay(1000);
   }
   else
   {
@@ -202,5 +207,4 @@ void rangingDoneIRQ( IrqRangingCode_t val )
 
 void cadDoneIRQ( bool cadFlag )
 {
-  Serial.println("cadDoneIRQ");
 }

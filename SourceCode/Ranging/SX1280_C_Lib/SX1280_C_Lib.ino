@@ -28,6 +28,7 @@ const uint16_t RNG_CALIB_1600[] = { 13308,  13493,  13528,  13515,  13430,  1337
 const double   RNG_FGRAD_0400[] = { -0.148, -0.214, -0.419, -0.853, -1.686, -3.423 };
 const double   RNG_FGRAD_0800[] = { -0.041, -0.811, -0.218, -0.429, -0.853, -1.737 };
 const double   RNG_FGRAD_1600[] = { 0.103,  -0.041, -0.101, -0.211, -0.424, -0.87  };
+const double   RNG_RATIO_1600 = 0.000000023;
 
 const char* IrqRangingCodeName[] = {
   "IRQ_RANGING_SLAVE_ERROR_CODE",
@@ -86,8 +87,12 @@ IrqRangingCode_t MasterIrqRangingCode = IRQ_RANGING_MASTER_ERROR_CODE;
 uint8_t Buffer[BUFFER_SIZE];
 uint8_t BufferSize = BUFFER_SIZE;
 
+enum _Role { SLAVE, MASTER } Role =  IS_MASTER;
+
 int Master_Init()
 {
+  Role = MASTER ;
+  Serial.println ("Master role");
   Radio.SetRangingRequestAddress(rangingAddress[2]);
   Radio.SetDioIrqParams( masterIrqMask, masterIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
   Radio.SetTx((TickTime_t) {
@@ -97,6 +102,8 @@ int Master_Init()
 
 int Slave_Init()
 {
+  Role = SLAVE;
+  Serial.println ("Salve role");
   Radio.SetRangingIdLength(RANGING_IDCHECK_LENGTH_32_BITS);
   Radio.SetDeviceRangingAddress(rangingAddress[2]);
   Radio.SetDioIrqParams( slaveIrqMask, slaveIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
@@ -138,7 +145,7 @@ void setup() {
   Radio.SetRfFrequency( Channels[0] );
   Radio.SetTxParams( TX_OUTPUT_POWER, RADIO_RAMP_20_US );
   Radio.SetBufferBaseAddresses( 0x00, 0x00 );
-  Radio.SetRangingCalibration( RNG_CALIB_1600[5] ); // Bandwith 1600, SF10
+  Radio.SetRangingCalibration( RNG_CALIB_1600[5] ); // Bandwith 1600, SF10   377577
   Radio.SetInterruptMode();
 
   if (IS_MASTER)
@@ -188,8 +195,8 @@ void loop() {
       break;
     case APP_RANGING:
       AppState = APP_IDLE;
-      //Serial.println("APP_RANGING");
-      if (IS_MASTER)
+      Serial.println("APP_RANGING");
+      if (Role == MASTER )
       {
         switch (MasterIrqRangingCode)
         {
@@ -205,23 +212,25 @@ void loop() {
 
             double rangingResult;
             rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
-            Serial.println(rangingResult);
+            Serial.print("Raw data: ");
+            Serial.print(rangingResult);
+            Serial.print(", Distance: ");
+            Serial.println(rangingResult,5);
+            delay(2000);
+            Slave_Init();
             break;
           case IRQ_RANGING_MASTER_ERROR_CODE:
             Serial.println("Raging Error");
+            Master_Init();
             break;
           default:
             break;
         }
-
-        Radio.SetTx((TickTime_t) {
-          RADIO_TICK_SIZE_1000_US, 0xFFFF
-        });
       }
-      else 
+      else if (Role == SLAVE)
       {
-        
-      }
+        delay(2010);
+        Master_Init();
       }
       break;
     case APP_CAD:

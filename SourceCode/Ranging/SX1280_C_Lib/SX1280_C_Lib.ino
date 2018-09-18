@@ -86,8 +86,27 @@ IrqRangingCode_t MasterIrqRangingCode = IRQ_RANGING_MASTER_ERROR_CODE;
 uint8_t Buffer[BUFFER_SIZE];
 uint8_t BufferSize = BUFFER_SIZE;
 
+int Master_Init()
+{
+  Radio.SetRangingRequestAddress(rangingAddress[2]);
+  Radio.SetDioIrqParams( masterIrqMask, masterIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
+  Radio.SetTx((TickTime_t) {
+    RADIO_TICK_SIZE_1000_US, 0xFFFF
+  });
+}
+
+int Slave_Init()
+{
+  Radio.SetRangingIdLength(RANGING_IDCHECK_LENGTH_32_BITS);
+  Radio.SetDeviceRangingAddress(rangingAddress[2]);
+  Radio.SetDioIrqParams( slaveIrqMask, slaveIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
+  Radio.SetRx((TickTime_t) {
+    RADIO_TICK_SIZE_1000_US, 0xFFFF
+  });
+}
+
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   if (IS_MASTER)
   {
     Serial.println("SX1280 MASTER");
@@ -97,7 +116,7 @@ void setup() {
     Serial.println("SX1280 SLAVE");
   }
   Radio.Init(&Callbacks);
-  Radio.SetRegulatorMode( USE_LDO ); // Can also be set in LDO mode but consume more power
+  Radio.SetRegulatorMode( USE_DCDC ); // Can also be set in LDO mode but consume more power
   Serial.println( "\n\n\r     SX1280 Ranging Demo Application. \n\n\r");
 
   modulationParams.PacketType = PACKET_TYPE_RANGING;
@@ -124,20 +143,11 @@ void setup() {
 
   if (IS_MASTER)
   {
-    Radio.SetRangingRequestAddress(rangingAddress[2]);
-    Radio.SetDioIrqParams( masterIrqMask, masterIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
-    Radio.SetTx((TickTime_t) {
-      RADIO_TICK_SIZE_1000_US, 0xFFFF
-    });
+    Master_Init();
   }
   else // SLAVE
   {
-    Radio.SetRangingIdLength(RANGING_IDCHECK_LENGTH_32_BITS);
-    Radio.SetDeviceRangingAddress(rangingAddress[2]);
-    Radio.SetDioIrqParams( slaveIrqMask, slaveIrqMask, IRQ_RADIO_NONE, IRQ_RADIO_NONE);
-    Radio.SetRx((TickTime_t) {
-      RADIO_TICK_SIZE_1000_US, 0xFFFF
-    });
+    Slave_Init();
   }
 
   AppState = APP_IDLE;
@@ -178,7 +188,7 @@ void loop() {
       break;
     case APP_RANGING:
       AppState = APP_IDLE;
-      // Serial.println("APP_RANGING");
+      //Serial.println("APP_RANGING");
       if (IS_MASTER)
       {
         switch (MasterIrqRangingCode)
@@ -193,7 +203,8 @@ void loop() {
             Serial.println(reg[1]);
             Serial.println(reg[2]);
 
-            double rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
+            double rangingResult;
+            rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
             Serial.println(rangingResult);
             break;
           case IRQ_RANGING_MASTER_ERROR_CODE:
@@ -206,6 +217,11 @@ void loop() {
         Radio.SetTx((TickTime_t) {
           RADIO_TICK_SIZE_1000_US, 0xFFFF
         });
+      }
+      else 
+      {
+        
+      }
       }
       break;
     case APP_CAD:

@@ -1,7 +1,7 @@
 #include "Radio.h"
 #include "FreqLUT.h"
 
-#define IS_MASTER 0
+#define IS_MASTER 1
 
 #define TX_OUTPUT_POWER                             13 // dBm
 #define RX_TIMEOUT_TICK_SIZE                        RADIO_TICK_SIZE_1000_US
@@ -24,7 +24,7 @@ const uint32_t rangingAddress[] = {
 */
 const uint16_t RNG_CALIB_0400[] = { 10299,  10271,  10244,  10242,  10230,  10246  };
 const uint16_t RNG_CALIB_0800[] = { 11486,  11474,  11453,  11426,  11417,  11401  };
-const uint16_t RNG_CALIB_1600[] = { 13308,  13493,  13528,  13515,  13430,  13376  };
+const uint16_t RNG_CALIB_1600[] = { 13308,  13493,  13528,  13515,  13430,   742 };//13376
 const double   RNG_FGRAD_0400[] = { -0.148, -0.214, -0.419, -0.853, -1.686, -3.423 };
 const double   RNG_FGRAD_0800[] = { -0.041, -0.811, -0.218, -0.429, -0.853, -1.737 };
 const double   RNG_FGRAD_1600[] = { 0.103,  -0.041, -0.101, -0.211, -0.424, -0.87  };
@@ -203,19 +203,20 @@ void loop() {
           case IRQ_RANGING_MASTER_VALID_CODE:
             uint8_t reg[3];
             
-            Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR, &reg[0], 1);
-            Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 1, &reg[1], 1);
-            Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 2, &reg[2], 1);
-            Serial.println(reg[0]);
-            Serial.println(reg[1]);
-            Serial.println(reg[2]);
+            //Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR, &reg[0], 1);
+            //Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 1, &reg[1], 1);
+            //Radio.ReadRegister(REG_LR_RANGINGRESULTBASEADDR + 2, &reg[2], 1);
+//            Serial.print("ranging result register: ");
+//            Serial.println(~((uint32_t) (reg[0] << 16) + (uint32_t) (reg[1] << 8 )+ (uint32_t) reg[2])+1);  
+//            Serial.println(reg[0]);
+//            Serial.println(reg[1]);
+//            Serial.println(reg[2]);
 
             double rangingResult;
             rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
             Serial.print("Raw data: ");
-            Serial.print(rangingResult);
-            Serial.print(", Distance: ");
-            Serial.println(rangingResult,5);
+            Serial.println(rangingResult);
+            Serial.println();
             delay(2000);
             Slave_Init();
             break;

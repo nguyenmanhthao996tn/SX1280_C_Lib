@@ -940,11 +940,15 @@ void __SetRangingRequestAddress(uint32_t address)
 int32_t complement2( const uint32_t num, const uint8_t bitCnt )
 {
   int32_t retVal = ( int32_t )num;
-  if ( num >= 2 << ( bitCnt - 2 ) )
+  if ( num >= (uint32_t)2 << ( bitCnt - 2 ) )
   {
-    retVal -= 2 << ( bitCnt - 1 );
+    Serial.print("Before Complement2 : ");
+    Serial.println(retVal);
+    retVal -= (uint32_t)2 << ( bitCnt - 1 );
+    Serial.print("After Complement2 :  ");
+    Serial.println(retVal&0xFFF); 
   }
-  return retVal;
+  return retVal & 0xFFF;
 }
 
 int32_t __GetLoRaBandwidth( )
@@ -984,7 +988,6 @@ double __GetRangingResult(RadioRangingResultTypes_t resultType)
       __WriteRegister_1( REG_LR_RANGINGRESULTCONFIG, ( __ReadRegister_1( REG_LR_RANGINGRESULTCONFIG ) & MASK_RANGINGMUXSEL ) | ( ( ( ( uint8_t )resultType ) & 0x03 ) << 4 ) );
       valLsb = ( ( (uint32_t)__ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR ) << 16 ) | ( (uint32_t)__ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR + 1 ) << 8 ) | ( (uint32_t)__ReadRegister_1( REG_LR_RANGINGRESULTBASEADDR + 2 ) ) );
       __SetStandby( STDBY_RC );
-
       // Convertion from LSB to distance. For explanation on the formula, refer to Datasheet of SX1280
       switch ( resultType )
       {

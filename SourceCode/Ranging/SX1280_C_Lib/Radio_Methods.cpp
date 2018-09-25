@@ -1,3 +1,4 @@
+#include "Config.h"
 #include "Radio_Methods.h"
 #include "Arduino.h"
 #include "SPI.h"
@@ -999,7 +1000,7 @@ double __GetRangingResult(RadioRangingResultTypes_t resultType)
       __SetStandby( STDBY_RC ); 
       #ifdef DEBUG
           Serial.print("Raw ranging value : ");
-          Serial.println((double) complement2(valLsb,24);
+          Serial.println((double) complement2(valLsb,24));
       #endif
       
       // Convertion from LSB to distance. For explanation on the formula, refer to Datasheet of SX1280
@@ -1013,8 +1014,8 @@ double __GetRangingResult(RadioRangingResultTypes_t resultType)
           // where A = 150 / (2^12 / 1e6) = 36621.09
           val = ( double )complement2( valLsb, 24 ) / ( double )__GetLoRaBandwidth( ) * 36621.09375;
           #ifdef DEBUG
-            Serial.print("After conversion using RAW result ranging value: ")
-            Serial.print(val);
+            Serial.print("After conversion using RAW result ranging value: ");
+            Serial.println(val);
           #endif
           break;
 
@@ -1023,7 +1024,7 @@ double __GetRangingResult(RadioRangingResultTypes_t resultType)
         case RANGING_RESULT_FILTERED:          
           val = ( double )valLsb * 20.0 / 100.0;
           #ifdef DEBUG
-            Serial.print("After conversion using Filtered result ranging value: ")
+            Serial.print("After conversion using Filtered result ranging value: ");
             Serial.println(val);
           #endif
           break;
@@ -1034,8 +1035,10 @@ double __GetRangingResult(RadioRangingResultTypes_t resultType)
     default:
       break;
   }
+  #ifdef DEBUG 
   Serial.print("Before Short range correction : ");
   Serial.println(val);
+  #endif 
   if (val <= 50)
   {
     int8_t rssi = __GetRssiInst(), val2 ;

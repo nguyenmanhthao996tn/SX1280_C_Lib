@@ -206,12 +206,15 @@ void loop() {
   uint8_t counter = 0;
   bool Finish = false ; // indicate when 10 ranging switch finish  
 
+  // remove Serial buffer 
+  while (Serial.available())
+    Serial.read();
+    
   if (IS_MASTER)
   {
     Serial.println("Enter Calibrate value : ");
-//    while (!Serial.available()); // waiting for input from uart
-//    
-//    CalibVal = Serial.parseInt();
+    while (!Serial.available()); // waiting for input from uart
+    CalibVal = Serial.parseInt();
     Serial.print("Calib value is : " );
     Serial.println(CalibVal,BIN);
     
@@ -298,6 +301,8 @@ void loop() {
   
               double rangingResult;
               rangingResult = Radio.GetRangingResult(RANGING_RESULT_RAW);
+              Serial.print("Measure no ");
+              Serial.println(counter + 1);
               Serial.print("Raw data: ");
               Serial.println(rangingResult);
               Serial.println();
@@ -306,7 +311,7 @@ void loop() {
               RangingData [counter++] = rangingResult;
   
               // Check if ranging finish 
-              if ((counter == NO_OF_RANGING) & IS_MASTER )
+              if ((counter == NO_OF_RANGING) & !IS_MASTER )
               {
                 Finish = true;
                 break;
@@ -342,7 +347,50 @@ void loop() {
         break;
     }
   }
-  while (1);
+  // Calculate mean of ranging data
+  uint16_t result = 0 ;
+  for (int i = 0; i < 10; ++i)
+    result += RangingData[i]*100 ; // Multiple by 100 to get 2 number after floating point 
+  result /= 10;
+  Serial.print ("Result is : ");
+  Serial.println (result);
+  // Waiting for slave result 
+  if ( IS_MASTER )
+  {
+    LoraPacketInit(false);
+    Serial.println("Waiting for Slave data");
+    while ( AppState != APP_RX );
+
+    Radio.GetPayload( Buffer, &BufferSize, BUFFER_SIZE );
+    if (BufferSize > 0)
+    {
+      Serial.print("RX ");
+      Serial.print(BufferSize);
+      Serial.println(" bytes:");
+
+      uint32_t RxData = 0;
+      for (int i = 0; i < BufferSize; i++)
+      {
+        RxData <<= 8;
+        RxData += Buffer[i];
+      }
+      Serial.print("Slave result : ");
+      Serial.println(RxData);
+      Serial.print("Ranging result is : ");
+      Serial.println( (double)(RxData + result)/200 ); 
+    }
+  }
+  // Calculate result and send to master 
+  else 
+  {
+    uint8_t Payload[4] = {(result >> 24) & 0xFF , (result >> 16)&0xFF, (result >> 8)&0xFF, result&0xFF};
+    LoraPacketInit(true);
+    delay(10);
+    Radio.SendPayload(  Payload  , 4, ( TickTime_t ) {
+        RX_TIMEOUT_TICK_SIZE, TX_TIMEOUT_VALUE
+      }, 0 );
+    while ( (AppState != APP_TX) && (AppState != APP_TX_TIMEOUT));  // Wait for Tx to complete
+  }
 }
 
 void txDoneIRQ( void )
@@ -352,6 +400,7 @@ void txDoneIRQ( void )
 
 void rxDoneIRQ( void )
 {
+  Serial.println("Rx done");
   AppState = APP_RX;
 }
 

@@ -1,6 +1,8 @@
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
+#define DEBUG
+
 #define NSS 10
 #define NRESET 6
 #define BUSY 5
